@@ -1,0 +1,30 @@
+# notcat daemon
+type notcatd, domain;
+type notcatd_exec, exec_type, file_type, vendor_file_type;
+
+init_daemon_domain(notcatd)
+
+allow notcatd notcatd_exec:file { read open getattr map execute };
+
+allow notcatd logd:unix_stream_socket connectto;
+allow notcatd logd:fd use;
+allow notcatd logd:unix_dgram_socket sendto;
+
+allow notcatd self:process { fork sigchld sigkill signal };
+allow notcatd self:capability { setuid setgid net_bind_service };
+
+#r_dir_file(notcatd)
+allow notcatd proc:file { read open getattr };
+allow notcatd proc_net:file { read open getattr };
+allow notcatd devpts:chr_file { read write open ioctl };
+
+# Define the socket type
+type notcatd_socket, file_type, coredomain_socket;
+
+# Label socket properly
+#typeattribute notcatd_socket unix_socket_type;
+typeattribute notcatd coredomain_socket;
+
+allow notcatd notcatd_socket:file { create write read open getattr };
+allow notcatd notcatd_socket:sock_file { read write };
+

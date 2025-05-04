@@ -1,0 +1,8 @@
+service notcatd /vendor/bin/notcatd
+    class core
+    user system
+    group system
+    seclabel u:r:notcatd:s0
+    socket notcat_socket stream 660 system system   
+    on property:sys.boot_completed=1
+        start notcatd

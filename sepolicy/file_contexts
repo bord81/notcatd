@@ -1,0 +1,2 @@
+/vendor/bin/notcatd   u:object_r:notcatd_exec:s0
+/dev/socket/notcat_socket     u:object_r:notcatd_socket:s0

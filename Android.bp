@@ -1,0 +1,18 @@
+rust_binary {
+    name: "notcatd",
+
+    srcs: ["src/main.rs"],
+    crate_name: "notcatd",
+    edition: "2021",
+    rustlibs: [
+        "libnix",
+        "libtokio",
+    ],
+    shared_libs: [
+       "liblog",
+    ],
+    vendor: true,  
+    init_rc: ["notcatd.rc"],
+}
+
+
