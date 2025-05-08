@@ -3,6 +3,4 @@ service notcatd /vendor/bin/notcatd
     user system
     group system
     seclabel u:r:notcatd:s0
-    socket notcat_socket stream 660 system system   
-    on property:sys.boot_completed=1
-        start notcatd
+    socket notcat_socket stream 0666 system system

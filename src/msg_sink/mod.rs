@@ -25,7 +25,7 @@ impl MessageSink for AndroidLog {
             LogPriority::Warn => AndroidLogPriority::Warn,
             LogPriority::Error => AndroidLogPriority::Error,
             LogPriority::Fatal => AndroidLogPriority::Fatal,
-            _  => AndroidLogPriority::Verbose,  
+            _ => AndroidLogPriority::Verbose,
         };
         android_native::log_android_native(
             android_priority,
@@ -38,4 +38,3 @@ impl MessageSink for AndroidLog {
         Ok(())
     }
 }
-    

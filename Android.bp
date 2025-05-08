@@ -6,6 +6,7 @@ rust_binary {
     edition: "2021",
     rustlibs: [
         "libnix",
+        "librustutils",
         "libtokio",
     ],
     shared_libs: [
