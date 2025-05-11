@@ -97,7 +97,6 @@ macro_rules! logf {
 
 pub(crate) use logd;
 pub(crate) use loge;
-#[allow(unused_imports)]
 pub(crate) use logf;
 pub(crate) use logi;
 pub(crate) use logv;
