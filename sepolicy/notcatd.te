@@ -28,3 +28,5 @@ typeattribute notcatd coredomain_socket;
 allow notcatd notcatd_socket:file { create write read open getattr };
 allow notcatd notcatd_socket:sock_file { read write };
 
+allow notcatd vendor_data_file:dir { add_name write };
+allow notcatd vendor_data_file:file { append create open };

@@ -4,3 +4,6 @@ service notcatd /vendor/bin/notcatd
     group system
     seclabel u:r:notcatd:s0
     socket notcat_socket stream 0666 system system
+
+    on post-fs-data
+        mkdir /data/vendor/notcat 0755 system system
