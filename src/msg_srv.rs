@@ -2,8 +2,8 @@ use crate::{log::*, log_def::*};
 use nix::{
     fcntl::{FcntlArg, FdFlag, OFlag, fcntl},
     sys::epoll::*,
-    sys::socket::{accept, listen},
-    unistd::{close, read},
+    sys::socket::{MsgFlags, accept, listen, recv},
+    unistd::close,
 };
 use rustutils::sockets::android_get_control_socket;
 use std::{
@@ -97,7 +97,7 @@ impl MessageServer<Sender<Vec<u8>>, JoinHandle<io::Result<()>>> for EpollServer 
                     } else if ev.events().contains(EpollFlags::EPOLLIN) {
                         let mut buf = [0u8; 8096];
                         loop {
-                            match read(fd, &mut buf) {
+                            match recv(fd, &mut buf, MsgFlags::MSG_DONTWAIT) {
                                 Ok(0) => {
                                     logv!(LOG_TAG, "[EpollServer] Client {} disconnected", fd);
                                     epoll_ctl(epfd, EpollOp::EpollCtlDel, fd, None)?;
