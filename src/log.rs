@@ -1,9 +1,5 @@
 use crate::log_def::*;
-use crate::msg_sink::AndroidLog;
-
 pub static LOG_TAG: &str = "NotCat";
-
-static ANDROID_LOGGER: AndroidLog = AndroidLog {};
 
 pub fn log(priority: LogPriority, tag: &str, msg: &str) {
     android_logger::log(priority, tag, msg);
@@ -11,26 +7,11 @@ pub fn log(priority: LogPriority, tag: &str, msg: &str) {
     // Add other logging outputs here, if needed
 
     mod android_logger {
-        use crate::log::ANDROID_LOGGER;
         use crate::log_def::*;
-        use crate::msg_sink::MessageSink;
+        use crate::msg_sink::android_native::{convert_priority, log_android_native};
         pub fn log(priority: LogPriority, tag: &str, msg: &str) {
-            let log_msg: LogMessage = LogMessage {
-                hash: 0,
-                priority,
-                timestamp: LogTimeStamp {
-                    year: 0,
-                    month: 0,
-                    day: 0,
-                    hour: 0,
-                    minute: 0,
-                    second: 0,
-                    millisecond: 0,
-                },
-                tag: Some(tag.to_string()),
-                message: msg.to_string(),
-            };
-            ANDROID_LOGGER.send_message(log_msg);
+            let android_priority = convert_priority(priority);
+            log_android_native(android_priority, tag, msg);
         }
     }
 }

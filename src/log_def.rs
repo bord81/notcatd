@@ -1,5 +1,6 @@
 #[allow(dead_code)]
 #[repr(u8)]
+#[derive(Debug)]
 pub enum LogPriority {
     Verbose,
     Debug,
@@ -9,6 +10,7 @@ pub enum LogPriority {
     Fatal,
 }
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct LogTimeStamp {
     pub year: u16,
     pub month: u8,
@@ -19,8 +21,9 @@ pub struct LogTimeStamp {
     pub millisecond: u16,
 }
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct LogMessage {
-    pub hash: u64,
+    pub pid: u64,
     pub priority: LogPriority,
     pub timestamp: LogTimeStamp,
     pub tag: Option<String>,

@@ -43,3 +43,39 @@ pub fn log_android_native(prio: AndroidLogPriority, tag: &str, msg: &str) {
         __android_log_write(prio as i32, tag_c.as_ptr(), msg_c.as_ptr());
     }
 }
+
+use crate::LogPriority;
+use crate::msg_sink::LogMessage;
+use crate::msg_sink::MessageSink;
+
+pub struct AndroidLog;
+
+pub fn convert_priority(priority: LogPriority) -> AndroidLogPriority {
+    match priority {
+        LogPriority::Debug => AndroidLogPriority::Debug,
+        LogPriority::Info => AndroidLogPriority::Info,
+        LogPriority::Warn => AndroidLogPriority::Warn,
+        LogPriority::Error => AndroidLogPriority::Error,
+        LogPriority::Fatal => AndroidLogPriority::Fatal,
+        _ => AndroidLogPriority::Verbose,
+    }
+}
+
+impl MessageSink for AndroidLog {
+    fn init(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn send_message(&mut self, message: LogMessage) {
+        let android_priority = convert_priority(message.priority);
+        log_android_native(
+            android_priority,
+            message.tag.as_deref().unwrap_or(""),
+            &message.message,
+        );
+    }
+
+    fn close(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+}

@@ -1,40 +1,39 @@
-mod android_native;
+pub mod android_native;
+pub mod local_file;
 use crate::log_def::*;
-use crate::msg_sink::android_native::*;
 
 pub trait MessageSink {
-    type MessageType;
     fn init(&mut self) -> Result<(), String>;
-    fn send_message(&self, message: Self::MessageType);
+    fn send_message(&mut self, message: LogMessage);
     fn close(&mut self) -> Result<(), String>;
 }
 
-pub struct AndroidLog;
+#[allow(dead_code)]
+pub enum SinkType {
+    LocalFile { implem: local_file::LocalFileSink },
+    AndroidNative { implem: android_native::AndroidLog },
+}
 
-impl MessageSink for AndroidLog {
-    type MessageType = LogMessage;
-
+impl MessageSink for SinkType {
     fn init(&mut self) -> Result<(), String> {
-        Ok(())
+        match self {
+            SinkType::LocalFile { implem } => implem
+                .init()
+                .map_err(|e| format!("LocalFileSink init failed: {}", e)),
+            SinkType::AndroidNative { implem: _i } => Ok(()),
+        }
     }
 
-    fn send_message(&self, message: LogMessage) {
-        let android_priority = match message.priority {
-            LogPriority::Debug => AndroidLogPriority::Debug,
-            LogPriority::Info => AndroidLogPriority::Info,
-            LogPriority::Warn => AndroidLogPriority::Warn,
-            LogPriority::Error => AndroidLogPriority::Error,
-            LogPriority::Fatal => AndroidLogPriority::Fatal,
-            _ => AndroidLogPriority::Verbose,
-        };
-        android_native::log_android_native(
-            android_priority,
-            message.tag.as_deref().unwrap_or(""),
-            &message.message,
-        );
+    fn send_message(&mut self, message: LogMessage) {
+        match self {
+            SinkType::LocalFile { implem } => implem.send_message(message),
+            SinkType::AndroidNative { implem } => implem.send_message(message),
+        }
     }
 
     fn close(&mut self) -> Result<(), String> {
-        Ok(())
+        match self {
+            _ => Ok(()),
+        }
     }
 }

@@ -7,6 +7,9 @@ mod msg_srv;
 use crate::log::*;
 use crate::log_def::LogPriority;
 
+use crate::msg_sink::SinkType;
+use crate::msg_sink::android_native::AndroidLog;
+use crate::msg_sink::local_file::LocalFileSink;
 use msg_proc::{ChannelProcessor, MessageProcessor};
 use msg_srv::{EpollServer, MessageServer};
 
@@ -24,7 +27,16 @@ async fn main() {
             return;
         }
     };
-    let receiver_handle = ChannelProcessor::run(rx);
+
+    // The order of sinks matters; the ChannelProcessor uses this for routing.
+    let sink_vec = vec![
+        SinkType::LocalFile {
+            implem: LocalFileSink { log_file: None },
+        },
+        SinkType::AndroidNative { implem: AndroidLog },
+    ];
+
+    let receiver_handle = ChannelProcessor::run(sink_vec, rx);
 
     match task::spawn_blocking(move || {
         server_handle.join().unwrap()?;
