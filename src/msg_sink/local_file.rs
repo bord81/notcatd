@@ -36,12 +36,7 @@ impl MessageSink for LocalFileSink {
     }
 
     fn send_message(&mut self, message: LogMessage) {
-        let msg = format!(
-            "[{:?}] {}: {}",
-            message.timestamp,
-            message.tag.as_deref().unwrap_or(""),
-            message.message
-        );
+        let msg = format!("[{}] {}", message.pid, message.message);
 
         if self.log_file.is_none() {
             loge!(LOG_TAG, "[MessageSink] Log file is not initialized.");

@@ -1,4 +1,4 @@
-use crate::{log::*, log_def::*};
+use crate::{SinkType, log::*, log_def::*};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use thiserror::Error;
@@ -20,20 +20,33 @@ pub enum ClientError {
 
 #[allow(dead_code)]
 pub struct ProtocolHandler {
-    fds_pids: HashMap<i32, u32>,
-    sender_channel: Sender<Vec<u8>>,
+    fds_pids: HashMap<i32, ClientData>,
+    sender_channel: Sender<LogPacket>,
+}
+
+pub struct LogPacket {
+    pub pid: u32,
+    pub version: u8,
+    pub sink_type: u8,
+    pub message: Vec<u8>,
+}
+
+struct ClientData {
+    version: u8,
+    pid: u32,
+    sink_type: u8,
 }
 
 static CONN_MAGIC: u32 = 0xb05acafe;
 
 static CURRENT_VERSION: u8 = 1;
 
-static VERSION_1_HSH_SZ: usize = 9; // 4 bytes for magic, 1 byte for version, 4 bytes for pid
+static VERSION_1_HSH_SZ: usize = 10; // 4 bytes for magic, 1 byte for version, 4 bytes for pid, 1 byte for sink type
 #[allow(dead_code)]
 static VERSION_1_MSG_SZ: usize = 14; // 4 bytes for message size, 1 byte for priority, 9 bytes for timestamp
 
 impl ProtocolHandler {
-    pub fn new(sender: Sender<Vec<u8>>) -> Self {
+    pub fn new(sender: Sender<LogPacket>) -> Self {
         ProtocolHandler {
             fds_pids: HashMap::new(),
             sender_channel: sender,
@@ -58,9 +71,15 @@ impl ProtocolHandler {
                 if buffer_len - buffer_ptr < msg_size {
                     return Err(ClientError::IncorrectMessageSize(buffer_len - buffer_ptr));
                 }
+                let client_data = self.fds_pids.get(&fd).unwrap();
                 if self
                     .sender_channel
-                    .send(buffer[buffer_ptr..buffer_ptr + msg_size].to_vec())
+                    .send(LogPacket {
+                        pid: client_data.pid,
+                        version: client_data.version,
+                        sink_type: client_data.sink_type,
+                        message: buffer[buffer_ptr..buffer_ptr + msg_size].to_vec(),
+                    })
                     .is_err()
                 {
                     return Err(ClientError::InternalError);
@@ -79,7 +98,15 @@ impl ProtocolHandler {
                     return Err(ClientError::IncorrectVersion(version));
                 }
                 let pid = u32::from_be_bytes(buffer[5..9].try_into().unwrap());
-                self.fds_pids.insert(fd, pid);
+                let sink_type = u8::from_be_bytes(buffer[9..10].try_into().unwrap());
+                self.fds_pids.insert(
+                    fd,
+                    ClientData {
+                        version,
+                        pid,
+                        sink_type,
+                    },
+                );
                 logd!(
                     LOG_TAG,
                     "[ProtocolHandler] New connection: fd={}, pid={}",

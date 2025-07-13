@@ -23,9 +23,8 @@ pub struct LogTimeStamp {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct LogMessage {
-    pub pid: u64,
+    pub pid: u32,
     pub priority: LogPriority,
     pub timestamp: LogTimeStamp,
-    pub tag: Option<String>,
     pub message: String,
 }

@@ -70,7 +70,7 @@ impl MessageSink for AndroidLog {
         let android_priority = convert_priority(message.priority);
         log_android_native(
             android_priority,
-            message.tag.as_deref().unwrap_or(""),
+            format!("PID: {}", &message.pid).as_str(),
             &message.message,
         );
     }

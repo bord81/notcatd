@@ -1,3 +1,4 @@
+use crate::LogPacket;
 use crate::log::*;
 use crate::log_def::LogPriority;
 use crate::log_def::LogTimeStamp;
@@ -12,8 +13,11 @@ pub trait MessageProcessor<M, R, H> {
 
 pub struct OutputHandler;
 
-impl MessageProcessor<SinkType, Receiver<Vec<u8>>, thread::JoinHandle<()>> for OutputHandler {
-    fn run(mut sink_vec: Vec<SinkType>, mut receiver: Receiver<Vec<u8>>) -> thread::JoinHandle<()> {
+impl MessageProcessor<SinkType, Receiver<LogPacket>, thread::JoinHandle<()>> for OutputHandler {
+    fn run(
+        mut sink_vec: Vec<SinkType>,
+        mut receiver: Receiver<LogPacket>,
+    ) -> thread::JoinHandle<()> {
         for sink in &mut sink_vec {
             if let Err(e) = sink.init() {
                 loge!(LOG_TAG, "[OutputHandler] Sink init failed: {}", e);
@@ -21,15 +25,16 @@ impl MessageProcessor<SinkType, Receiver<Vec<u8>>, thread::JoinHandle<()>> for O
         }
         thread::spawn(move || {
             while let Some(data) = receiver.blocking_recv() {
-                let msg = String::from_utf8_lossy(&data);
-                logd!(LOG_TAG, "[OutputHandler] Got: {}", msg);
+                let sink_type = data.sink_type;
                 // iterate over sink_vec and send the message to each sink
                 for sink in &mut sink_vec {
+                    if sink_type & (*sink.get_ordinal() as u8) == 0 {
+                        continue;
+                    }
                     sink.send_message(crate::log_def::LogMessage {
-                        pid: 0,
+                        pid: data.pid,
                         priority: LogPriority::Debug,
-                        tag: Some(LOG_TAG.to_string()),
-                        message: msg.to_string(),
+                        message: String::from_utf8_lossy(&data.message).to_string(),
                         timestamp: LogTimeStamp {
                             year: 1970,
                             month: 1,
