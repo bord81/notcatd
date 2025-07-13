@@ -43,8 +43,7 @@ static CONN_MAGIC: u32 = 0xb05acafe;
 static CURRENT_VERSION: u8 = 1;
 
 static VERSION_1_HSH_SZ: usize = 10; // 4 bytes for magic, 1 byte for version, 4 bytes for pid, 1 byte for sink type
-#[allow(dead_code)]
-static VERSION_1_MSG_SZ: usize = 14; // 4 bytes for message size, 1 byte for priority, 9 bytes for timestamp
+static VERSION_1_MSG_SZ: usize = 5; // 4 bytes for message size, 1 byte for priority, 9 bytes for timestamp
 
 impl ProtocolHandler {
     pub fn new(sender: Sender<LogPacket>) -> Self {
@@ -62,7 +61,7 @@ impl ProtocolHandler {
                 break Ok(());
             }
             if self.fds_pids.contains_key(&fd) {
-                if buffer_len - buffer_ptr < 4 {
+                if buffer_len - buffer_ptr < VERSION_1_MSG_SZ {
                     return Err(ClientError::IncorrectMessageSize(buffer_len - buffer_ptr));
                 }
                 let msg_size =
