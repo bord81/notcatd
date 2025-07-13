@@ -44,13 +44,13 @@ impl MessageProcessor<SinkType, Receiver<LogPacket>, thread::JoinHandle<()>> for
                         priority: client_priority,
                         message: String::from_utf8_lossy(&data.message).to_string(),
                         timestamp: LogTimeStamp {
-                            year: 1970,
-                            month: 1,
-                            day: 1,
-                            hour: 0,
-                            minute: 0,
-                            second: 0,
-                            millisecond: 0,
+                            year: u16::from_be_bytes([data.timestamp[0], data.timestamp[1]]),
+                            month: data.timestamp[2],
+                            day: data.timestamp[3],
+                            hour: data.timestamp[4],
+                            minute: data.timestamp[5],
+                            second: data.timestamp[6],
+                            millisecond: u16::from_be_bytes([data.timestamp[7], data.timestamp[8]]),
                         },
                     });
                 }

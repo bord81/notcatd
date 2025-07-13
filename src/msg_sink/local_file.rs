@@ -44,7 +44,19 @@ impl MessageSink for LocalFileSink {
             LogPriority::Error => "E",
             _ => "U", // Unknown
         };
-        let msg = format!("[{}] {} {}", message.pid, priority_str, message.message);
+        let msg = format!(
+            "[{}] {} {}-{}-{} {}:{}:{}-{} {}",
+            message.pid,
+            priority_str,
+            message.timestamp.year,
+            message.timestamp.month,
+            message.timestamp.day,
+            message.timestamp.hour,
+            message.timestamp.minute,
+            message.timestamp.second,
+            message.timestamp.millisecond,
+            message.message
+        );
 
         if self.log_file.is_none() {
             loge!(LOG_TAG, "[MessageSink] Log file is not initialized.");
