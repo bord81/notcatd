@@ -28,6 +28,7 @@ pub struct LogPacket {
     pub pid: u32,
     pub version: u8,
     pub sink_type: u8,
+    pub priority: u8,
     pub message: Vec<u8>,
 }
 
@@ -68,6 +69,9 @@ impl ProtocolHandler {
                     u32::from_be_bytes(buffer[buffer_ptr..buffer_ptr + 4].try_into().unwrap())
                         as usize;
                 buffer_ptr += 4;
+                let client_priority =
+                    u8::from_be_bytes(buffer[buffer_ptr..buffer_ptr + 1].try_into().unwrap());
+                buffer_ptr += 1;
                 if buffer_len - buffer_ptr < msg_size {
                     return Err(ClientError::IncorrectMessageSize(buffer_len - buffer_ptr));
                 }
@@ -78,6 +82,7 @@ impl ProtocolHandler {
                         pid: client_data.pid,
                         version: client_data.version,
                         sink_type: client_data.sink_type,
+                        priority: client_priority,
                         message: buffer[buffer_ptr..buffer_ptr + msg_size].to_vec(),
                     })
                     .is_err()

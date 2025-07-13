@@ -31,9 +31,17 @@ impl MessageProcessor<SinkType, Receiver<LogPacket>, thread::JoinHandle<()>> for
                     if sink_type & (*sink.get_ordinal() as u8) == 0 {
                         continue;
                     }
+                    let client_priority = match data.priority {
+                        0 => LogPriority::Verbose,
+                        1 => LogPriority::Debug,
+                        2 => LogPriority::Info,
+                        3 => LogPriority::Warn,
+                        4 => LogPriority::Error,
+                        _ => LogPriority::Verbose,
+                    };
                     sink.send_message(crate::log_def::LogMessage {
                         pid: data.pid,
-                        priority: LogPriority::Debug,
+                        priority: client_priority,
                         message: String::from_utf8_lossy(&data.message).to_string(),
                         timestamp: LogTimeStamp {
                             year: 1970,
