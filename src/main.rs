@@ -1,16 +1,18 @@
 mod log;
-#[allow(unused_imports)]
 mod log_def;
 mod msg_proc;
 mod msg_sink;
 mod msg_srv;
+#[allow(unused_imports)]
+mod prot_handler;
 use crate::log::*;
 use crate::log_def::LogPriority;
 
 use crate::msg_sink::SinkType;
 use crate::msg_sink::android_native::AndroidLog;
 use crate::msg_sink::local_file::LocalFileSink;
-use msg_proc::{ChannelProcessor, MessageProcessor};
+use crate::prot_handler::ProtocolHandler;
+use msg_proc::{MessageProcessor, OutputHandler};
 use msg_srv::{EpollServer, MessageServer};
 
 use tokio::task;
@@ -20,7 +22,10 @@ async fn main() {
     logi!(LOG_TAG, "Daemon is starting");
 
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
-    let server_handle = match EpollServer::run(tx.clone()) {
+
+    let prot_handler = ProtocolHandler::new(tx.clone());
+
+    let server_handle = match EpollServer::run(prot_handler) {
         Ok(handle) => handle,
         Err(e) => {
             loge!(LOG_TAG, "Error starting server: {}", e);
@@ -28,7 +33,7 @@ async fn main() {
         }
     };
 
-    // The order of sinks matters; the ChannelProcessor uses this for routing.
+    // The order of sinks matters; the OutputHandler uses this for routing.
     let sink_vec = vec![
         SinkType::LocalFile {
             implem: LocalFileSink { log_file: None },
@@ -36,7 +41,7 @@ async fn main() {
         SinkType::AndroidNative { implem: AndroidLog },
     ];
 
-    let receiver_handle = ChannelProcessor::run(sink_vec, rx);
+    let receiver_handle = OutputHandler::run(sink_vec, rx);
 
     match task::spawn_blocking(move || {
         server_handle.join().unwrap()?;

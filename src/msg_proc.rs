@@ -10,19 +10,19 @@ pub trait MessageProcessor<M, R, H> {
     fn run(sink_vec: Vec<M>, receiver: R) -> H;
 }
 
-pub struct ChannelProcessor;
+pub struct OutputHandler;
 
-impl MessageProcessor<SinkType, Receiver<Vec<u8>>, thread::JoinHandle<()>> for ChannelProcessor {
+impl MessageProcessor<SinkType, Receiver<Vec<u8>>, thread::JoinHandle<()>> for OutputHandler {
     fn run(mut sink_vec: Vec<SinkType>, mut receiver: Receiver<Vec<u8>>) -> thread::JoinHandle<()> {
         for sink in &mut sink_vec {
             if let Err(e) = sink.init() {
-                loge!(LOG_TAG, "[ChannelProcessor] Sink init failed: {}", e);
+                loge!(LOG_TAG, "[OutputHandler] Sink init failed: {}", e);
             }
         }
         thread::spawn(move || {
             while let Some(data) = receiver.blocking_recv() {
                 let msg = String::from_utf8_lossy(&data);
-                logd!(LOG_TAG, "[ChannelProcessor] Got: {}", msg);
+                logd!(LOG_TAG, "[OutputHandler] Got: {}", msg);
                 // iterate over sink_vec and send the message to each sink
                 for sink in &mut sink_vec {
                     sink.send_message(crate::log_def::LogMessage {
@@ -42,7 +42,7 @@ impl MessageProcessor<SinkType, Receiver<Vec<u8>>, thread::JoinHandle<()>> for C
                     });
                 }
             }
-            logd!(LOG_TAG, "[ChannelProcessor] Channel closed, exiting.");
+            logd!(LOG_TAG, "[OutputHandler] Channel closed, exiting.");
         })
     }
 }

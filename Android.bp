@@ -8,6 +8,7 @@ rust_binary {
         "libnix",
         "librustutils",
         "libtokio",
+        "libthiserror",
     ],
     shared_libs: [
        "liblog",

@@ -1,4 +1,4 @@
-use crate::{log::*, log_def::*};
+use crate::{log::*, log_def::*, prot_handler::*};
 use nix::{
     fcntl::{FcntlArg, FdFlag, OFlag, fcntl},
     sys::epoll::*,
@@ -13,10 +13,9 @@ use std::{
     os::unix::io::RawFd,
     thread::{self, JoinHandle},
 };
-use tokio::sync::mpsc::UnboundedSender as Sender;
 
-pub trait MessageServer<S, H> {
-    fn run(sender: S) -> io::Result<H>;
+pub trait MessageServer<L, H> {
+    fn run(listener: L) -> io::Result<H>;
 }
 
 pub struct EpollServer;
@@ -38,8 +37,8 @@ impl AsFd for FdWrapper {
     }
 }
 
-impl MessageServer<Sender<Vec<u8>>, JoinHandle<io::Result<()>>> for EpollServer {
-    fn run(sender: Sender<Vec<u8>>) -> io::Result<JoinHandle<io::Result<()>>> {
+impl MessageServer<ProtocolHandler, JoinHandle<io::Result<()>>> for EpollServer {
+    fn run(mut prot_handler: ProtocolHandler) -> io::Result<JoinHandle<io::Result<()>>> {
         logv!(LOG_TAG, "[EpollServer] Starting...");
 
         let listener_fd = init_socket_fd()?;
@@ -96,11 +95,13 @@ impl MessageServer<Sender<Vec<u8>>, JoinHandle<io::Result<()>>> for EpollServer 
                         }
                     } else if ev.events().contains(EpollFlags::EPOLLIN) {
                         let mut buf = [0u8; 8096];
+                        let mut input_buffer = Vec::with_capacity(8096);
                         loop {
                             match recv(fd, &mut buf, MsgFlags::MSG_DONTWAIT) {
                                 Ok(0) => {
                                     logv!(LOG_TAG, "[EpollServer] Client {} disconnected", fd);
                                     epoll_ctl(epfd, EpollOp::EpollCtlDel, fd, None)?;
+                                    prot_handler.remove_fd(fd);
                                     match close(fd) {
                                         Ok(_) => {
                                             logv!(LOG_TAG, "[EpollServer] Closed client {}", fd)
@@ -115,16 +116,45 @@ impl MessageServer<Sender<Vec<u8>>, JoinHandle<io::Result<()>>> for EpollServer 
                                     break;
                                 }
                                 Ok(n) => {
-                                    let data = buf[..n].to_vec();
-                                    if sender.send(data).is_err() {
+                                    input_buffer.extend_from_slice(&buf[..n]);
+                                }
+                                Err(nix::errno::Errno::EAGAIN) => {
+                                    if let Err(e) = prot_handler.process_buffer(fd, &input_buffer) {
                                         loge!(
                                             LOG_TAG,
-                                            "[EpollServer] Message receiver dropped {}",
-                                            fd
+                                            "[EpollServer] Error processing buffer for client {}: {:?}",
+                                            fd,
+                                            e
                                         );
+                                        match e {
+                                            ClientError::InternalError => {
+                                                break;
+                                            }
+                                            ClientError::IncorrectMessageSize(_) => {
+                                                break;
+                                            }
+                                            _ => {
+                                                epoll_ctl(epfd, EpollOp::EpollCtlDel, fd, None)?;
+                                                match close(fd) {
+                                                    Ok(_) => {
+                                                        logv!(
+                                                            LOG_TAG,
+                                                            "[EpollServer] Closed client {}",
+                                                            fd
+                                                        )
+                                                    }
+                                                    Err(e) => loge!(
+                                                        LOG_TAG,
+                                                        "[EpollServer] Error closing client {}: {}",
+                                                        fd,
+                                                        e
+                                                    ),
+                                                }
+                                            }
+                                        }
                                     }
+                                    break;
                                 }
-                                Err(nix::errno::Errno::EAGAIN) => break,
                                 Err(e) => {
                                     loge!(
                                         LOG_TAG,
@@ -133,6 +163,7 @@ impl MessageServer<Sender<Vec<u8>>, JoinHandle<io::Result<()>>> for EpollServer 
                                         e
                                     );
                                     epoll_ctl(epfd, EpollOp::EpollCtlDel, fd, None)?;
+                                    prot_handler.remove_fd(fd);
                                     match close(fd) {
                                         Ok(_) => {
                                             logv!(LOG_TAG, "[EpollServer] Closed client {}", fd)
@@ -153,6 +184,7 @@ impl MessageServer<Sender<Vec<u8>>, JoinHandle<io::Result<()>>> for EpollServer 
                         .contains(EpollFlags::EPOLLHUP | EpollFlags::EPOLLERR)
                     {
                         logw!(LOG_TAG, "[EpollServer] Client {} hung up or error", fd);
+                        prot_handler.remove_fd(fd);
                         match epoll_ctl(epfd, EpollOp::EpollCtlDel, fd, None) {
                             Ok(_) => logv!(LOG_TAG, "[EpollServer] Removed client {}", fd),
                             Err(e) => {
