@@ -5,6 +5,7 @@ use nix::{
     sys::socket::{MsgFlags, accept, listen, recv},
     unistd::close,
 };
+use rustutils::sockets::SocketError;
 use rustutils::sockets::android_get_control_socket;
 use std::{
     io,
@@ -207,11 +208,29 @@ impl MessageServer<ProtocolHandler, JoinHandle<io::Result<()>>> for EpollServer 
 }
 
 fn init_socket_fd() -> io::Result<RawFd> {
-    let listener_fd =
-        FdWrapper::new(android_get_control_socket(SOCKET_NAME).unwrap_or_else(|_| {
-            logf!(LOG_TAG, "[EpollServer] Failed to create socket");
-            -1
-        }));
+    let listener_fd = FdWrapper::new(android_get_control_socket(SOCKET_NAME).unwrap_or_else(|e| {
+        match e {
+            SocketError::NulError(name) => {
+                loge!(
+                    LOG_TAG,
+                    "[EpollServer] Socket name '{}' contains NUL byte",
+                    name
+                );
+            }
+            SocketError::GetControlSocketFailed(name) => {
+                loge!(
+                    LOG_TAG,
+                    "[EpollServer] Failed to get control socket '{}'",
+                    name
+                );
+            }
+            SocketError::FcntlFailed(errno) => {
+                loge!(LOG_TAG, "[EpollServer] fcntl failed: {}", errno);
+            }
+        }
+        logf!(LOG_TAG, "[EpollServer] Failed to create socket");
+        -1
+    }));
 
     match listen(&listener_fd, MAX_CLIENTS_QUEUE) {
         Ok(_) => {
