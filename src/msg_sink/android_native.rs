@@ -12,8 +12,10 @@ pub enum AndroidLogPriority {
     Silent = 8,
 }
 
+use std::ffi::c_char;
+
 extern "C" {
-    fn __android_log_write(prio: i32, tag: *const i8, msg: *const i8) -> i32;
+    fn __android_log_write(prio: i32, tag: *const c_char, msg: *const c_char) -> i32;
 }
 
 pub fn log_android_native(prio: AndroidLogPriority, tag: &str, msg: &str) {
