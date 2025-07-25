@@ -10,19 +10,34 @@ use crate::msg_sink::MessageSink;
 
 pub struct LocalFileSink {
     pub log_file: Option<File>,
+    is_valid: bool,
 }
 
 static LOG_DIR: &str = "/data/vendor/notcat";
 static LOG_FILE: &str = "/data/vendor/notcat/notcat.log";
 
+impl LocalFileSink {
+    pub fn new() -> Self {
+        LocalFileSink {
+            log_file: None,
+            is_valid: true,
+        }
+    }
+}
+
 impl MessageSink for LocalFileSink {
     fn init(&mut self) -> Result<(), String> {
         if !Path::new(LOG_DIR).exists() {
-            std::fs::create_dir_all(LOG_DIR)
-                .map_err(|e| format!("Failed to create directory: {}", e))?;
+            std::fs::create_dir_all(LOG_DIR).map_err(|e| {
+                self.is_valid = false;
+                format!("Failed to create directory: {}", e)
+            })?;
         }
         if !Path::new(LOG_FILE).exists() {
-            File::create(LOG_FILE).map_err(|e| format!("Failed to create log file: {}", e))?;
+            File::create(LOG_FILE).map_err(|e| {
+                self.is_valid = false;
+                format!("Failed to create log file: {}", e)
+            })?;
         }
         let log_file_path = PathBuf::from(LOG_FILE);
         self.log_file = Some(
@@ -30,12 +45,18 @@ impl MessageSink for LocalFileSink {
                 .create(true)
                 .append(true)
                 .open(&log_file_path)
-                .map_err(|e| format!("Failed to open log file: {}", e))?,
+                .map_err(|e| {
+                    self.is_valid = false;
+                    format!("Failed to open log file: {}", e)
+                })?,
         );
         Ok(())
     }
 
     fn send_message(&mut self, message: LogMessage) {
+        if !self.is_valid {
+            return;
+        }
         let priority_str = match message.priority {
             LogPriority::Verbose => "V",
             LogPriority::Debug => "D",
@@ -59,16 +80,19 @@ impl MessageSink for LocalFileSink {
         );
 
         if self.log_file.is_none() {
+            self.is_valid = false;
             loge!(LOG_TAG, "[MessageSink] Log file is not initialized.");
             return;
         }
 
         let log_file = self.log_file.as_mut().unwrap();
         if let Err(e) = writeln!(log_file, "{}", msg) {
+            self.is_valid = false;
             loge!(LOG_TAG, "[MessageSink] Failed to write to log file: {}", e);
         }
 
         if let Err(e) = log_file.flush() {
+            self.is_valid = false;
             loge!(LOG_TAG, "[MessageSink] Failed to flush log: {}", e);
         }
     }

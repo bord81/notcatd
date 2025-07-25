@@ -54,7 +54,7 @@ impl SinkType {
     pub fn new(ordinal: SinkTypeOrdinal) -> Option<Self> {
         match ordinal {
             SinkTypeOrdinal::LocalFileType => Some(SinkType::LocalFile {
-                implem: local_file::LocalFileSink { log_file: None },
+                implem: local_file::LocalFileSink::new(),
                 ordinal,
             }),
             SinkTypeOrdinal::AndroidNativeType => Some(SinkType::AndroidNative {
