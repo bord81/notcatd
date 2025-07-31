@@ -14,6 +14,8 @@ pub enum ClientError {
     IncorrectHeaderSize(usize),
     #[error("Incorrect message size: {0}")]
     IncorrectMessageSize(usize),
+    #[error("Client is already connected")]
+    ClientAlreadyConnected,
     #[error("Internal error occurred")]
     InternalError,
 }
@@ -106,6 +108,11 @@ impl ProtocolHandler {
                     return Err(ClientError::IncorrectVersion(version));
                 }
                 let pid = u32::from_be_bytes(buffer[5..9].try_into().unwrap());
+                for (_fd_key, client_data) in self.fds_pids.iter() {
+                    if client_data.pid == pid {
+                        return Err(ClientError::ClientAlreadyConnected);
+                    }
+                }
                 let sink_type = u8::from_be_bytes(buffer[9..10].try_into().unwrap());
                 self.fds_pids.insert(
                     fd,
