@@ -1,2 +1,3 @@
-/vendor/bin/notcatd   u:object_r:notcatd_exec:s0
+/system_ext/bin/notcatd   u:object_r:notcatd_exec:s0
 /dev/socket/notcat_socket     u:object_r:notcatd_socket:s0
+/data/misc/notcat(/.*)?   u:object_r:notcatd_data_file:s0

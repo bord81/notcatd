@@ -1,8 +1,13 @@
 # notcat daemon
 type notcatd, domain;
-type notcatd_exec, exec_type, file_type, vendor_file_type;
+type notcatd_exec, exec_type, file_type, system_file_type;
+type notcatd_data_file, file_type, data_file_type, core_data_file_type;
+
+typeattribute notcatd coredomain;
 
 init_daemon_domain(notcatd)
+
+file_type_auto_trans(notcatd, notcatd_data_file, notcatd_data_file)
 
 allow notcatd notcatd_exec:file { read open getattr map execute };
 
@@ -14,7 +19,6 @@ allow notcatd self:process { fork sigchld sigkill signal };
 allow notcatd self:capability { setuid setgid net_bind_service };
 
 #r_dir_file(notcatd)
-allow notcatd proc:file { read open getattr };
 allow notcatd proc_net:file { read open getattr };
 allow notcatd devpts:chr_file { read write open ioctl };
 
@@ -28,5 +32,7 @@ typeattribute notcatd coredomain_socket;
 allow notcatd notcatd_socket:file { create write read open getattr };
 allow notcatd notcatd_socket:sock_file { read write };
 
-allow notcatd vendor_data_file:dir { add_name write };
-allow notcatd vendor_data_file:file { append create open };
+allow notcatd system_data_file:dir search;
+
+allow notcatd notcatd_data_file:dir   create_dir_perms;
+allow notcatd notcatd_data_file:dir  create_file_perms;

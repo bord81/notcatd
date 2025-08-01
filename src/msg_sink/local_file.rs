@@ -13,8 +13,8 @@ pub struct LocalFileSink {
     is_valid: bool,
 }
 
-static LOG_DIR: &str = "/data/vendor/notcat";
-static LOG_FILE: &str = "/data/vendor/notcat/notcat.log";
+static LOG_DIR: &str = "/data/misc/notcat";
+static LOG_FILE: &str = "/data/misc/notcat/notcat.log";
 
 impl LocalFileSink {
     pub fn new() -> Self {

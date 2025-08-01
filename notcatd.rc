@@ -1,4 +1,4 @@
-service notcatd /vendor/bin/notcatd
+service notcatd /system_ext/bin/notcatd
     class core
     user system
     group system
@@ -6,4 +6,4 @@ service notcatd /vendor/bin/notcatd
     socket notcat_socket seqpacket 0666 system system
 
     on post-fs-data
-        mkdir /data/vendor/notcat 0755 system system
+        mkdir /data/misc/notcat 0755 system system

@@ -13,7 +13,7 @@ rust_binary {
     shared_libs: [
        "liblog",
     ],
-    vendor: true,  
+    system_ext_specific: true,
     init_rc: ["notcatd.rc"],
 }
 
