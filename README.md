@@ -10,7 +10,7 @@
 - 🧵 **Asynchronous Runtime** — Built using [Tokio](https://tokio.rs/) for efficient async IO and internal task management.
 - 📁 **Multiple Output Sinks**:
   - Forwarding logs to traditional `logcat`.
-  - Persisting logs to file under `/data/vendor/notcat/`.
+  - Persisting logs to rotating file sequence under `/data/vendor/notcat/`.
 - 🔐 **SEPolicy Ready** — Secure integration with Android SELinux policies.
 - 🧩 **Modular Design** — Easily extendable to support more sinks or message formats.
 
